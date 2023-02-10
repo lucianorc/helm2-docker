@@ -7,9 +7,10 @@ RUN apk add --no-cache python3 curl libc6-compat
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/gcloud
 RUN mkdir -p /usr/local/share/gcloud \
   && tar -C /usr/local/share/gcloud -zxf /tmp/gcloud \
-  && /usr/local/share/gcloud/google-cloud-sdk/install.sh
+  && /usr/local/share/gcloud/google-cloud-sdk/install.sh \
+    --additional-components kubectl gke-gcloud-auth-plugin \
+    --quiet
 ENV PATH $PATH:/usr/local/share/gcloud/google-cloud-sdk/bin
-RUN gcloud components install kubectl gke-gcloud-auth-plugin
 
 # Installing latest helmv2
 ARG ARCH=x86_64
@@ -20,5 +21,6 @@ ENV PATH $PATH:/usr/local/share/helm/linux-$ARCH
 
 RUN rm /tmp/*
 USER helm
+WORKDIR /home/helm
 
 ENTRYPOINT [ "helm" ]
