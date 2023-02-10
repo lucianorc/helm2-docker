@@ -13,7 +13,7 @@ RUN mkdir -p /usr/local/share/gcloud \
 ENV PATH $PATH:/usr/local/share/gcloud/google-cloud-sdk/bin
 
 # Installing latest helmv2
-ARG ARCH=x86_64
+ARG ARCH=arm64
 RUN curl -L https://get.helm.sh/helm-v2.17.0-linux-$ARCH.tar.gz -o /tmp/helm
 RUN mkdir -p /usr/local/share/helm \
   && tar -C /usr/local/share/helm -zxf /tmp/helm
