@@ -1,26 +1,37 @@
-FROM alpine
+# syntax=docker/dockerfile:1.4
+FROM alpine as base
 
-RUN adduser -D helm
-RUN apk add --no-cache python3 curl libc6-compat
-
-# Installing gcloud
-RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/gcloud
-RUN mkdir -p /usr/local/share/gcloud \
-  && tar -C /usr/local/share/gcloud -zxf /tmp/gcloud \
-  && /usr/local/share/gcloud/google-cloud-sdk/install.sh \
-    --additional-components kubectl gke-gcloud-auth-plugin \
-    --quiet
-ENV PATH $PATH:/usr/local/share/gcloud/google-cloud-sdk/bin
-
-# Installing latest helmv2
 ARG ARCH=arm64
-RUN curl -L https://get.helm.sh/helm-v2.17.0-linux-$ARCH.tar.gz -o /tmp/helm
-RUN mkdir -p /usr/local/share/helm \
-  && tar -C /usr/local/share/helm -zxf /tmp/helm
+COPY scripts/usr/share/entrypoint.sh /usr/share/entrypoint.sh
+RUN <<EOL
+  set -e
+  apk add --no-cache curl libc6-compat openssl
+
+  mkdir -p /usr/local/share/helm
+  curl -Ls https://get.helm.sh/helm-v2.17.0-linux-$ARCH.tar.gz | tar zxC /usr/local/share/helm
+  set +e
+EOL
 ENV PATH $PATH:/usr/local/share/helm/linux-$ARCH
 
-RUN rm /tmp/*
-USER helm
-WORKDIR /home/helm
+USER root
+WORKDIR /root
+ENTRYPOINT [ "/usr/share/entrypoint.sh" ]
 
-ENTRYPOINT [ "helm" ]
+
+FROM base AS gcp
+
+RUN <<EOL
+  set -e
+  apk add --no-cache python3
+
+  mkdir -p /usr/local/share/gcloud
+  curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | \
+    tar zx -C /usr/local/share/gcloud
+  /usr/local/share/gcloud/google-cloud-sdk/install.sh \
+    --additional-components kubectl gke-gcloud-auth-plugin \
+    --quiet
+
+  echo "export PATH=$PATH:/usr/local/share/gcloud/google-cloud-sdk/bin" > /etc/profile.d/gcp.sh
+  set +e
+EOL
+ENV PATH=$PATH:/usr/local/share/gcloud/google-cloud-sdk/bin
